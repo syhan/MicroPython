@@ -6,28 +6,39 @@ import ubinascii
 
 import wifi
 import blink
-import sensor
+import sensor_dht11 as sensor
+import micropython
+
+micropython.alloc_emergency_exception_buf(100)
+
+timer = machine.Timer(42)
 
 client = MQTTClient(ubinascii.hexlify(machine.unique_id()), "192.168.0.20")
+client.set_callback(sub)
+
+def sub(topic, msg):
+    if msg == b"off":
+        timer.deinit()
+        client.disonnect()
+    elif msg == b"on":
+        main()
 
 def work():
     current = sensor.read()
     blink.blink_once()
 
-    client.connect()
     client.publish(b"/temp", str(current[0]))
-    blink.blink_twice()
     client.publish(b"/humi", str(current[1]))
     blink.blink_twice()
-    client.disconnect()
 
 def main():
     wifi.connect()
+    client.connect()
+
+    client.subscribe("/ops")
     blink.blink_twice()
 
-    while True:
-        work()
-        time.sleep(5)
+    timer.init(period=10000, mode=machine.Timer.PERIODIC, callback=work)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
