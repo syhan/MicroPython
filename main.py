@@ -24,5 +24,5 @@ def main():
 
     timer.init(period=10000, mode=machine.Timer.PERIODIC, callback=lambda _: work())
 
-  if __name__ == "__main__":
-      main()
+if __name__ == "__main__":
+    main()
