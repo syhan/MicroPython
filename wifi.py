@@ -1,8 +1,8 @@
 import network
 import machine
 
-SSID = '<SSID>'
-SSID_PW = '<PASSWORD>'
+SSID = 'YHHY'
+SSID_PW = 'xxxx'
 
 def connect():
     wlan = network.WLAN(network.STA_IF)
