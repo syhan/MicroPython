@@ -5,7 +5,7 @@ import time
 import ubinascii
 
 import wifi
-import sensor.dht11 as sensor
+import dht11 as sensor
 import micropython
 micropython.alloc_emergency_exception_buf(100)
 
