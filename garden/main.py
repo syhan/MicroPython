@@ -6,13 +6,10 @@ import machine
 import network
 import time
 import ubinascii
-import micropython
-micropython.alloc_emergency_exception_buf(100)
 
-SSID = "YHHY-IoT"
-SSID_PWD = "welcome1"
-MQTT_SERVER = "10.0.0.159"
-
+SSID = "<SSID>"
+SSID_PWD = "<PASSWORD>"
+MQTT_SERVER = "<MQTT_SERVER>"
 
 def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -27,14 +24,20 @@ def connect_wifi():
     print("WiFi connected: {}\n".format(wlan.ifconfig()))
 
 def measure():
-    client = MQTTClient(ubinascii.hexlify(machine.unique_id()), MQTT_SERVER)
+    machine_id = ubinascii.hexlify(machine.unique_id()).decode()
+
+    client = MQTTClient(machine_id.encode(), MQTT_SERVER)
+    client.connect()
 
     sensor = Sensor()
-    client.publish(f"sensors/{machine.unique_id()}/temperature".encode(), sensor.getTemperature())
-    client.publish(f"sensors/{machine.unique_id()}/humidity".encode(), sensor.getHumidity())
+
+    print("publish to topic `sensors/{}`".format(machine_id))
+
+    client.publish("sensors/{}/temperature".format(machine_id).encode(), str(sensor.getTemperature()))
+    client.publish("sensors/{}/humidity".format(machine_id).encode(), str(sensor.getHumidity()))
 
     battery = Battery()
-    client.publish(f"sensors/{machine.unique_id()}/voltage".encode(), battery.getVoltage())
+    client.publish("sensors/{}/voltage".format(machine_id).encode(), str(battery.getVoltage()))
 
 def deep_sleep(msecs):
     # configure RTC.ALARM0 to be able to wake the device
