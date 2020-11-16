@@ -25,19 +25,29 @@ def connect_wifi():
 
 def measure():
     machine_id = ubinascii.hexlify(machine.unique_id()).decode()
+    print("Start measuring sensor: {}\n".format(machine_id))
 
     client = MQTTClient(machine_id.encode(), MQTT_SERVER)
     client.connect()
 
-    sensor = Sensor()
+    try:
+        sensor = Sensor()
+        t, h = sensor.getTemperature(), sensor.getHumidity()
+        
+        # follow influxdb line protocol defined in https://docs.influxdata.com/influxdb/v2.0/reference/syntax/line-protocol/
+        client.publish("sensors/{}/temperature".format(machine_id).encode(), "temperature,sensor={} value={}".format(machine_id, t))
+        print("Publish measurement {} to topics sensors/{}/temperature\n".format(t, machine_id))
 
-    print("publish to topic `sensors/{}`".format(machine_id))
+        client.publish("sensors/{}/humidity".format(machine_id).encode(), "humidity,sensor={} value={}".format(machine_id, h))
+        print("Publish measurement {} to topics sensors/{}/humidity\n".format(h, machine_id))
 
-    client.publish("sensors/{}/temperature".format(machine_id).encode(), str(sensor.getTemperature()))
-    client.publish("sensors/{}/humidity".format(machine_id).encode(), str(sensor.getHumidity()))
+        battery = Battery()
+        v = battery.getVoltage()
+        client.publish("sensors/{}/voltage".format(machine_id).encode(), "voltage,sensor={} value={}".format(machine_id, v))
+        print("Publish measurement {} to topics sensors/{}/voltage\n".format(v, machine_id))    
+    finally:
+        client.disconnect()
 
-    battery = Battery()
-    client.publish("sensors/{}/voltage".format(machine_id).encode(), str(battery.getVoltage()))
 
 def deep_sleep(msecs):
     # configure RTC.ALARM0 to be able to wake the device
@@ -48,15 +58,20 @@ def deep_sleep(msecs):
     rtc.alarm(rtc.ALARM0, msecs)
 
     # put the device to sleep
+    print("Deep sleep {} millesecond".format(msecs))
     machine.deepsleep()
 
 def main():
-    connect_wifi()
+    # before we start, let's give the chipset a breath
+    time.sleep_ms(1200)
 
+    connect_wifi()
+    
     measure()
 
     # sleep 30 minutes then wake up
     deep_sleep(30 * 60 * 1000)
-
+    
+    
 if __name__ == "__main__":
     main()
